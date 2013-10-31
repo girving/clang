@@ -501,6 +501,43 @@ class TokenKind(object):
         TokenKind._value_map[value] = kind
         setattr(TokenKind, name, kind)
 
+class AccessKind(object):
+    """Describes a specific type of an access specifier."""
+
+    # The unique kind objects, indexed by id
+    _kinds = []
+    _name_map = None
+
+    def __init__(self, value):
+        if value >= len(AccessKind._kinds):
+            AccessKind._kinds += [None] * (value - len(AccessKind._kinds) + 1)
+        if AccessKind._kinds[value] is not None:
+            raise ValueError,'AccessKind already loaded'
+        self.value = value
+        AccessKind._kinds[value] = self
+        AccessKind._name_map = None
+
+    @property
+    def name(self):
+        """Get the enumeration name of this cursor kind."""
+        if self._name_map is None:
+            self._name_map = {}
+            for key,value in AccessKind.__dict__.items():
+                if isinstance(value,AccessKind):
+                    self._name_map[value] = key
+        return self._name_map[self]
+
+    @staticmethod
+    def from_id(id):
+        if id >= len(AccessKind._kinds) or AccessKind._kinds[id] is None:
+            raise ValueError,'Unknown access kind %d' % id
+        return AccessKind._kinds[id]
+
+AccessKind.INVALID   = AccessKind(0)
+AccessKind.PUBLIC    = AccessKind(1)
+AccessKind.PROTECTED = AccessKind(2)
+AccessKind.PRIVATE   = AccessKind(3)
+
 ### Cursor Kinds ###
 
 class CursorKind(object):
@@ -1302,6 +1339,14 @@ class Cursor(Structure):
               conf.lib.clang_getDeclObjCTypeEncoding(self)
 
         return self._objc_type_encoding
+
+    @property
+    def access(self):
+        """Return the AccessKind of an access specifier."""
+        if not hasattr(self, '_access'):
+            self._access = AccessKind.from_id(conf.lib.clang_getCXXAccessSpecifier(self))
+
+        return self._access
 
     @property
     def hash(self):
