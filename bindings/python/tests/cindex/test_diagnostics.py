@@ -80,3 +80,12 @@ def test_diagnostic_option():
 
     assert d.option == '-Wunused-parameter'
     assert d.disable_option == '-Wno-unused-parameter'
+
+def test_diagnostic_format():
+    """Ensure that diagnostics format."""
+    tu = get_tu('int f(int i) { return unusual; }')
+    assert len(tu.diagnostics) == 1
+    d = tu.diagnostics[0]
+
+    assert (d.format() ==
+      "t.c:1:23: error: use of undeclared identifier 'unusual'")

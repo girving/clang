@@ -382,6 +382,12 @@ class Diagnostic(object):
 
         return conf.lib.clang_getCString(disable)
 
+    def format(self, options=None):
+        """Format the diagnostic according to the given options."""
+        if options is None:
+            options = conf.lib.clang_defaultDiagnosticDisplayOptions()
+        return conf.lib.clang_formatDiagnostic(self, options)
+
     def __repr__(self):
         return "<Diagnostic severity %r, location %r, spelling %r>" % (
             self.severity, self.location, self.spelling)
@@ -2948,6 +2954,15 @@ functionList = [
    [Diagnostic],
    _CXString,
    _CXString.from_result),
+
+  ("clang_formatDiagnostic",
+   [Diagnostic, c_uint],
+   _CXString,
+   _CXString.from_result),
+
+  ("clang_defaultDiagnosticDisplayOptions",
+   [],
+   c_uint),
 
   ("clang_getElementType",
    [Type],
