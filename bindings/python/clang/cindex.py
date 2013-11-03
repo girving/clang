@@ -1136,6 +1136,18 @@ CursorKind.INCLUSION_DIRECTIVE = CursorKind(503)
 # A module import declaration.
 CursorKind.MODULE_IMPORT_DECL = CursorKind(600)
 
+###
+# Template arguments
+CursorKind.NULL_TEMPLATE_ARG = CursorKind(700)
+CursorKind.TYPE_TEMPLATE_ARG = CursorKind(701)
+CursorKind.DECLARATION_TEMPLATE_ARG = CursorKind(702)
+CursorKind.NULL_PTR_TEMPLATE_ARG = CursorKind(703)
+CursorKind.INTEGRAL_TEMPLATE_ARG = CursorKind(704)
+CursorKind.TEMPLATE_TEMPLATE_ARG = CursorKind(705)
+CursorKind.TEMPLATE_EXPANSION_TEMPLATE_ARG = CursorKind(706)
+CursorKind.EXPRESSION_TEMPLATE_ARG = CursorKind(707)
+CursorKind.PACK_TEMPLATE_ARG = CursorKind(708)
+
 ### Cursors ###
 
 class Cursor(Structure):
@@ -1202,10 +1214,6 @@ class Cursor(Structure):
     @property
     def spelling(self):
         """Return the spelling of the entity pointed at by the cursor."""
-        if not self.kind.is_declaration():
-            # FIXME: clang_getCursorSpelling should be fixed to not assert on
-            # this, for consistency with clang_getCursorUSR.
-            return None
         if not hasattr(self, '_spelling'):
             self._spelling = conf.lib.clang_getCursorSpelling(self)
 
@@ -1405,6 +1413,19 @@ class Cursor(Structure):
         num_args = conf.lib.clang_Cursor_getNumArguments(self)
         for i in range(0, num_args):
             yield conf.lib.clang_Cursor_getArgument(self, i)
+
+    def has_template_args(self):
+        """Is this cursor a declaration with template arguments?
+        Note: returns True for templatized classes with zero arguments."""
+        return conf.lib.clang_Cursor_getNumTemplateArgs(self) >= 0
+
+    def get_template_args(self):
+        """Return an iterator for accessing the template arguments of this cursor."""
+        num = conf.lib.clang_Cursor_getNumTemplateArgs(self)
+        if num < 0:
+            raise ValueError("Cursor has no notion of template arguments")
+        for i in range(num):
+            yield conf.lib.clang_Cursor_getTemplateArg(self, i)
 
     def get_children(self):
         """Return an iterator for accessing the children of this cursor."""
@@ -3271,6 +3292,15 @@ functionList = [
    c_int),
 
   ("clang_Cursor_getArgument",
+   [Cursor, c_uint],
+   Cursor,
+   Cursor.from_result),
+
+  ("clang_Cursor_getNumTemplateArgs",
+   [Cursor],
+   c_int),
+
+  ("clang_Cursor_getTemplateArg",
    [Cursor, c_uint],
    Cursor,
    Cursor.from_result),

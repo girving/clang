@@ -214,6 +214,11 @@ CXType clang_getCursorType(CXCursor C) {
     return MakeCXType(QualType(), TU);
   }
 
+  if (C.kind == CXCursor_TypeTemplateArg) {
+    const TemplateArgument *TA = getCursorTemplateArg(C);
+    return MakeCXType(TA->getAsType(), TU);
+  }
+
   return MakeCXType(QualType(), TU);
 }
 
