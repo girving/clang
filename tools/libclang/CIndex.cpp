@@ -6225,6 +6225,30 @@ CXComment clang_Cursor_getParsedComment(CXCursor C) {
   return cxcomment::createCXComment(FC, getCursorTU(C));
 }
 
+CXCursor clang_Cursor_getDefaultArgument(CXCursor C) {
+  if (clang_isDeclaration(C.kind)) {
+    const Decl *D = getCursorDecl(C);
+    if (const ParmVarDecl *PD = dyn_cast<ParmVarDecl>(D)) {
+      if (const Expr *E = PD->getDefaultArg())
+        return MakeCXCursor(E, D, getCursorTU(C));
+    } else if (const NonTypeTemplateParmDecl *PD = dyn_cast<NonTypeTemplateParmDecl>(D)) {
+      if (const Expr *E = PD->getDefaultArgument())
+        return MakeCXCursor(E, D, getCursorTU(C));
+    } else if (const TemplateTemplateParmDecl *PD = dyn_cast<TemplateTemplateParmDecl>(D)) {
+      if (PD->hasDefaultArgument()) {
+        const TemplateArgument &TA = PD->getDefaultArgument().getArgument();
+        return MakeCXCursor(&TA, D, getCursorTU(C));
+      }
+    } /*
+    else if (const TemplateTypeParmDecl *PD = dyn_cast<TemplateTypeParmDecl>(D)) {
+      // FIXME: Since types can't be converted to cursors, we can't return a useful result.
+    } */
+  }
+
+  // If the cursor has the wrong type, or has the right type but lacks a default, return invalid.
+  return clang_getNullCursor();
+}
+
 CXModule clang_Cursor_getModule(CXCursor C) {
   if (C.kind == CXCursor_ModuleImportDecl) {
     if (const ImportDecl *ImportD =

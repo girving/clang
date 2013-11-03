@@ -3526,6 +3526,15 @@ CINDEX_LINKAGE CXString clang_Cursor_getBriefCommentText(CXCursor C);
 CINDEX_LINKAGE CXComment clang_Cursor_getParsedComment(CXCursor C);
 
 /**
+ * \brief Retrieve the default argument of a parameter declaration.
+ *
+ * If no default exists, an invalid cursor is returned.  Unfortunately,
+ * this function also cannot return default type arguments for template
+ * parameters, since these cannot be converted to a cursor.
+ */
+CINDEX_LINKAGE CXCursor clang_Cursor_getDefaultArgument(CXCursor C);
+
+/**
  * @}
  */
 
