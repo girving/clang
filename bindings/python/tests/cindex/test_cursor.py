@@ -1,5 +1,6 @@
 import gc
 
+from clang.cindex import AccessKind
 from clang.cindex import CursorKind
 from clang.cindex import TranslationUnit
 from clang.cindex import TypeKind
@@ -259,3 +260,15 @@ def test_referenced():
         if c.kind == CursorKind.CALL_EXPR:
             assert c.referenced.spelling == foo.spelling
             break
+
+def test_access():
+    tu = get_tu('struct s { int a; protected: int b; public: int c; private: int d; };', 'cpp')
+    s = get_cursor(tu, 's')
+    assert s.access == AccessKind.INVALID
+    expect = [AccessKind.PUBLIC, AccessKind.PROTECTED, AccessKind.PROTECTED,
+              AccessKind.PUBLIC, AccessKind.PUBLIC, AccessKind.PRIVATE, AccessKind.PRIVATE]
+    kids = list(s.get_children())
+    assert len(kids) == len(expect)
+    for c,a in zip(kids, expect):
+        assert c.access == a
+    assert repr(expect[0]) == 'AccessKind.PUBLIC'
