@@ -1744,7 +1744,7 @@ AttributeList::Kind AttributeList::getKind(const IdentifierInfo * Name) {
 // CHECK: 60:3: TypeRef=class llvm::StringRef:38:7 Extent=[60:3 - 60:12]
 // CHECK: 60:27: ParmDecl=Start:60:27 (Definition) Extent=[60:20 - 60:32]
 // CHECK: 60:20: TypeRef=size_t:2:25 Extent=[60:20 - 60:26]
-// CHECK: 60:41: ParmDecl=N:60:41 (Definition) Extent=[60:34 - 60:49]
+// CHECK: 60:41: ParmDecl=N:60:41 (Definition) DefaultExtent=[60:45 - 60:49] Extent=[60:34 - 60:49]
 // CHECK: 60:34: TypeRef=size_t:2:25 Extent=[60:34 - 60:40]
 // CHECK: 60:45: DeclRefExpr=npos:41:23 Extent=[60:45 - 60:49]
 // CHECK: 60:57: CompoundStmt= Extent=[60:57 - 62:4]

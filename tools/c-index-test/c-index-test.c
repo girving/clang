@@ -794,6 +794,10 @@ static void PrintCursor(CXCursor Cursor,
 
     PrintCursorComments(Cursor, ValidationData);
 
+    const CXCursor Default = clang_Cursor_getDefaultArgument(Cursor);
+    if (!clang_isInvalid(Default.kind))
+      PrintRange(clang_getCursorExtent(Default), "DefaultExtent");
+
     {
       unsigned PropAttrs = clang_Cursor_getObjCPropertyAttributes(Cursor, 0);
       if (PropAttrs != CXObjCPropertyAttr_noattr) {

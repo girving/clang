@@ -6220,6 +6220,17 @@ CXComment clang_Cursor_getParsedComment(CXCursor C) {
   return cxcomment::createCXComment(FC, getCursorTU(C));
 }
 
+CXCursor clang_Cursor_getDefaultArgument(CXCursor C) {
+  if (clang_isDeclaration(C.kind)) {
+    const Decl *D = getCursorDecl(C);
+    if (const ParmVarDecl *PD = dyn_cast<ParmVarDecl>(D)) {
+      if (const Expr *E = PD->getDefaultArg())
+        return MakeCXCursor(E, D, getCursorTU(C));
+    }
+  }
+  return clang_getNullCursor();
+}
+
 CXModule clang_Cursor_getModule(CXCursor C) {
   if (C.kind == CXCursor_ModuleImportDecl) {
     if (const ImportDecl *ImportD =

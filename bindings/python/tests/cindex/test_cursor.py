@@ -291,3 +291,10 @@ typedef base<char,7> derived;
     assert args[0].type.kind == TypeKind.CHAR_S
     assert args[1].kind == CursorKind.INTEGRAL_TEMPLATE_ARG
     assert args[1].spelling == '7'
+
+def test_default_argument():
+  tu = get_tu('void foo(int a=7);', 'cpp')
+  a = get_cursor(tu, 'a').default_argument
+  assert a.kind == CursorKind.INTEGER_LITERAL
+  assert a.extent.start.column == 16
+  assert a.extent.end.column   == 17

@@ -1419,6 +1419,11 @@ class Cursor(Structure):
         """Returns the raw comment text associated with that Cursor"""
         return conf.lib.clang_Cursor_getRawCommentText(self)
 
+    @property
+    def default_argument(self):
+        """The default argument of a parameter declaration, or None"""
+        return conf.lib.clang_Cursor_getDefaultArgument(self)
+
     def get_arguments(self):
         """Return an iterator for accessing the arguments of this cursor."""
         num_args = conf.lib.clang_Cursor_getNumArguments(self)
@@ -3333,6 +3338,11 @@ functionList = [
    [Cursor],
    _CXString,
    _CXString.from_result),
+
+  ("clang_Cursor_getDefaultArgument",
+   [Cursor],
+   Cursor,
+   Cursor.from_result),
 
   ("clang_Type_getAlignOf",
    [Type],
