@@ -1285,6 +1285,69 @@ static enum CXChildVisitResult PrintBitWidth(CXCursor cursor, CXCursor p,
 }
 
 /******************************************************************************/
+/* Template argument testing.                                                 */
+/******************************************************************************/
+
+static void PrintTemplateArgsHelper(CXCursor cursor) {
+  const int n = clang_Cursor_getNumTemplateArgs(cursor);
+  if (n >= 0)
+    printf(" [template args %d]", n);
+  for (int i = 0; i < n; ++i) {
+    CXCursor arg = clang_Cursor_getTemplateArg(cursor, i);
+    enum CXCursorKind kind = clang_getCursorKind(arg);
+    assert(clang_isTemplateArg(kind) && "bad clang_Cursor_getTemplateArg result");
+    CXString spelling = clang_getCursorSpelling(arg);
+    printf(" [i=%d] [spelling=%s]", i, clang_getCString(spelling));
+    clang_disposeString(spelling);
+
+    switch (kind) {
+    case CXCursor_NullTemplateArg:
+      printf(" [argkind=null]");
+      break;
+    case CXCursor_TypeTemplateArg:
+      PrintTypeAndTypeKind(clang_getCursorType(arg), " [argkind=type] [type=%s] [typekind=%s]");
+      break;
+    case CXCursor_DeclarationTemplateArg:
+      printf(" [argkind=decl]");
+      break;
+    case CXCursor_NullPtrTemplateArg:
+      printf(" [argkind=nullptr]");
+      break;
+    case CXCursor_IntegralTemplateArg:
+      printf(" [argkind=integral]");
+      break;
+    case CXCursor_TemplateTemplateArg:
+      printf(" [argkind=template]");
+      break;
+    case CXCursor_TemplateExpansionTemplateArg:
+      printf(" [argkind=templateexpansion]");
+      break;
+    case CXCursor_ExpressionTemplateArg:
+      printf(" [argkind=expression]");
+      break;
+    case CXCursor_PackTemplateArg:
+      printf(" [argkind=pack]");
+      break;
+    default:
+      printf(" [argkind=unknown-%d]", (int)kind);
+    }
+  }
+}
+
+static enum CXChildVisitResult PrintTemplateArgs(CXCursor cursor, CXCursor p,
+                                                 CXClientData d) {
+  if (!clang_isInvalid(clang_getCursorKind(cursor))) {
+    PrintCursor(cursor, NULL);
+    PrintTemplateArgsHelper(cursor);
+    const CXType type = clang_getCanonicalType(clang_getCursorType(cursor));
+    const CXCursor decl = clang_getTypeDeclaration(type);
+    PrintTemplateArgsHelper(decl);
+    printf("\n");
+  }
+  return CXChildVisit_Recurse;
+}
+
+/******************************************************************************/
 /* Loading ASTs/source.                                                       */
 /******************************************************************************/
 
@@ -3862,6 +3925,9 @@ int cindextest_main(int argc, const char **argv) {
   else if (argc > 2 && strcmp(argv[1], "-test-print-bitwidth") == 0)
     return perform_test_load_source(argc - 2, argv + 2, "all",
                                     PrintBitWidth, 0);
+  else if (argc > 2 && strcmp(argv[1], "-test-print-template-args") == 0)
+    return perform_test_load_source(argc - 2, argv + 2, "all",
+                                    PrintTemplateArgs, 0);
   else if (argc > 1 && strcmp(argv[1], "-print-usr") == 0) {
     if (argc > 2)
       return print_usrs(argv + 2, argv + argc);

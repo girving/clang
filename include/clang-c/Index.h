@@ -2113,7 +2113,20 @@ enum CXCursorKind {
    */
   CXCursor_ModuleImportDecl              = 600,
   CXCursor_FirstExtraDecl                = CXCursor_ModuleImportDecl,
-  CXCursor_LastExtraDecl                 = CXCursor_ModuleImportDecl
+  CXCursor_LastExtraDecl                 = CXCursor_ModuleImportDecl,
+
+  /* Template arguments */
+  CXCursor_NullTemplateArg               = 700,
+  CXCursor_TypeTemplateArg               = 701,
+  CXCursor_DeclarationTemplateArg        = 702,
+  CXCursor_NullPtrTemplateArg            = 703,
+  CXCursor_IntegralTemplateArg           = 704,
+  CXCursor_TemplateTemplateArg           = 705,
+  CXCursor_TemplateExpansionTemplateArg  = 706,
+  CXCursor_ExpressionTemplateArg         = 707,
+  CXCursor_PackTemplateArg               = 708,
+  CXCursor_FirstTemplateArg              = CXCursor_NullTemplateArg,
+  CXCursor_LastTemplateArg               = CXCursor_PackTemplateArg
 };
 
 /**
@@ -2234,6 +2247,12 @@ CINDEX_LINKAGE unsigned clang_isTranslationUnit(enum CXCursorKind);
  * element, such as a preprocessor directive or macro instantiation.
  */
 CINDEX_LINKAGE unsigned clang_isPreprocessing(enum CXCursorKind);
+
+/***
+ * \brief Determine whether the given cursor represents a template
+ * argument.
+ */
+CINDEX_LINKAGE unsigned clang_isTemplateArg(enum CXCursorKind);
   
 /***
  * \brief Determine whether the given cursor represents a currently
@@ -2786,6 +2805,21 @@ CINDEX_LINKAGE int clang_Cursor_getNumArguments(CXCursor C);
  * invalid cursor is returned.
  */
 CINDEX_LINKAGE CXCursor clang_Cursor_getArgument(CXCursor C, unsigned i);
+
+/**
+ * \brief Count the template arguments of a declaration
+ *
+ * For other cursors, -1 is returned.
+ */
+CINDEX_LINKAGE int clang_Cursor_getNumTemplateArgs(CXCursor C);
+
+/**
+ * \brief Retrieve one template argument of a declaration
+ *
+ * If the cursor has the wrong type, or the index is out of range, and invalid
+ * cursor is returned.
+ */
+CINDEX_LINKAGE CXCursor clang_Cursor_getTemplateArg(CXCursor C, unsigned i);
 
 /**
  * \brief Determine whether two CXTypes represent the same type.

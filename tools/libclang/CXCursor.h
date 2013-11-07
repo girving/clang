@@ -43,6 +43,7 @@ class TemplateName;
 class TypeDecl;
 class VarDecl;
 class IdentifierInfo;
+class TemplateArgument;
   
 namespace cxcursor {
 
@@ -56,6 +57,9 @@ CXCursor MakeCXCursor(const clang::Decl *D, CXTranslationUnit TU,
 CXCursor MakeCXCursor(const clang::Stmt *S, const clang::Decl *Parent,
                       CXTranslationUnit TU,
                       SourceRange RegionOfInterest = SourceRange());
+CXCursor MakeCXCursor(const clang::TemplateArgument* A,
+                      const clang::Decl* Parent,
+                      CXTranslationUnit TU);
 CXCursor MakeCXCursorInvalid(CXCursorKind K, CXTranslationUnit TU = 0);
 
 /// \brief Create an Objective-C superclass reference at the given location.
@@ -246,6 +250,7 @@ const Expr *getCursorExpr(CXCursor Cursor);
 const Stmt *getCursorStmt(CXCursor Cursor);
 const Attr *getCursorAttr(CXCursor Cursor);
 const Decl *getCursorParentDecl(CXCursor Cursor);
+const TemplateArgument *getCursorTemplateArg(CXCursor Cursor);
 
 ASTContext &getCursorContext(CXCursor Cursor);
 ASTUnit *getCursorASTUnit(CXCursor Cursor);

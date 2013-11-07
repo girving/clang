@@ -518,6 +518,34 @@ CXCursor cxcursor::MakeCXCursor(const Stmt *S, const Decl *Parent,
   return C;
 }
 
+static CXCursorKind GetCursorKind(const TemplateArgument *A) {
+  assert(A && "Invalid arguments!");
+  switch (A->getKind()) {
+    #define TACase(Kind) \
+      case TemplateArgument::Kind: \
+        return CXCursor_##Kind##TemplateArg;
+    TACase(Null)
+    TACase(Type)
+    TACase(Declaration)
+    TACase(NullPtr)
+    TACase(Integral)
+    TACase(Template)
+    TACase(TemplateExpansion)
+    TACase(Expression)
+    TACase(Pack)
+  }
+
+  llvm_unreachable("Invalid TemplateArgument::Kind");
+}
+
+CXCursor cxcursor::MakeCXCursor(const TemplateArgument* A,
+                                const Decl* Parent,
+                                CXTranslationUnit TU) {
+  assert(A && Parent && TU && "Invalid arguments!");
+  CXCursor C = { GetCursorKind(A), 0, { Parent, A, TU } };
+  return C;
+}
+
 CXCursor cxcursor::MakeCursorObjCSuperClassRef(ObjCInterfaceDecl *Super, 
                                                SourceLocation Loc, 
                                                CXTranslationUnit TU) {
@@ -818,6 +846,10 @@ const Decl *cxcursor::getCursorParentDecl(CXCursor Cursor) {
   return static_cast<const Decl *>(Cursor.data[0]);
 }
 
+const TemplateArgument *cxcursor::getCursorTemplateArg(CXCursor Cursor) {
+  return static_cast<const TemplateArgument *>(Cursor.data[1]);
+}
+
 ASTContext &cxcursor::getCursorContext(CXCursor Cursor) {
   return getCursorASTUnit(Cursor)->getASTContext();
 }
@@ -1003,6 +1035,44 @@ CXCursor clang_Cursor_getArgument(CXCursor C, unsigned i) {
   }
 
   return clang_getNullCursor();
+}
+
+// Return the number of template arguments and a pointer to the first.
+// On failure, -1 is returned.  Logic borrowed from TypePrinter::printTag
+static int getTemplateArgs(const Decl *D, const TemplateArgument **args) {
+  const ClassTemplateSpecializationDecl *Spec
+    = dyn_cast<ClassTemplateSpecializationDecl>(D);
+  if (!Spec)
+    return -1;
+  if (TypeSourceInfo *TAW = Spec->getTypeAsWritten()) {
+    const TemplateSpecializationType *TST =
+      cast<TemplateSpecializationType>(TAW->getType());
+    *args = TST->getArgs();
+    return TST->getNumArgs();
+  } else {
+    const TemplateArgumentList &TA = Spec->getTemplateArgs();
+    *args = TA.data();
+    return TA.size();
+  }
+}
+
+int clang_Cursor_getNumTemplateArgs(CXCursor C) {
+  if (!clang_isDeclaration(C.kind))
+    return -1;
+  const Decl *D = getCursorDecl(C);
+  const TemplateArgument *args;
+  return getTemplateArgs(D,&args);
+}
+
+CXCursor clang_Cursor_getTemplateArg(CXCursor C, unsigned i) {
+  if (!clang_isDeclaration(C.kind))
+    return clang_getNullCursor();
+  const Decl *D = getCursorDecl(C);
+  const TemplateArgument *args;
+  const int count = getTemplateArgs(D,&args);
+  if (count < 0 || i >= unsigned(count))
+    return clang_getNullCursor();
+  return MakeCXCursor(args+i, D, getCursorTU(C));
 }
 
 } // end: extern "C"

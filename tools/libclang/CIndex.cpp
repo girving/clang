@@ -537,6 +537,12 @@ bool CursorVisitor::VisitChildren(CXCursor Cursor) {
           A->getInterfaceLoc()->getTypeLoc().getLocStart(), TU));
   }
 
+  // For now template arguments have no children.
+  // This should possibly change to account for general
+  // expression, parameter packs, etc.
+  if (clang_isTemplateArg(Cursor.kind))
+    return false;
+
   // If pointing inside a macro definition, check if the token is an identifier
   // that was ever defined as a macro. In such a case, create a "pseudo" macro
   // expansion cursor for that token.
@@ -3352,6 +3358,14 @@ CXString clang_getCursorSpelling(CXCursor C) {
     return cxstring::createRef("packed");
   }
 
+  if (clang_isTemplateArg(C.kind)) {
+    SmallString<64> Str;
+    llvm::raw_svector_ostream OS(Str);
+    const PrintingPolicy Policy = getCursorContext(C).getPrintingPolicy();
+    getCursorTemplateArg(C)->print(Policy,OS);
+    return cxstring::createDup(OS.str());
+  }
+
   return cxstring::createEmpty();
 }
 
@@ -3821,6 +3835,24 @@ CXString clang_getCursorKindSpelling(enum CXCursorKind Kind) {
     return cxstring::createRef("ModuleImport");
   case CXCursor_OMPParallelDirective:
       return cxstring::createRef("OMPParallelDirective");
+  case CXCursor_NullTemplateArg:
+    return cxstring::createRef("NullTemplateArg");
+  case CXCursor_TypeTemplateArg:
+    return cxstring::createRef("TypeTemplateArg");
+  case CXCursor_DeclarationTemplateArg:
+    return cxstring::createRef("DeclarationTemplateArg");
+  case CXCursor_NullPtrTemplateArg:
+    return cxstring::createRef("NullPtrTemplateArg");
+  case CXCursor_IntegralTemplateArg:
+    return cxstring::createRef("IntegralTemplateArg");
+  case CXCursor_TemplateTemplateArg:
+    return cxstring::createRef("TemplateTemplateArg");
+  case CXCursor_TemplateExpansionTemplateArg:
+    return cxstring::createRef("TemplateExpansionTemplateArg");
+  case CXCursor_ExpressionTemplateArg:
+    return cxstring::createRef("ExpressionTemplateArg");
+  case CXCursor_PackTemplateArg:
+    return cxstring::createRef("PackTemplateArg");
   }
 
   llvm_unreachable("Unhandled CXCursorKind");
@@ -4056,7 +4088,11 @@ unsigned clang_isTranslationUnit(enum CXCursorKind K) {
 unsigned clang_isPreprocessing(enum CXCursorKind K) {
   return K >= CXCursor_FirstPreprocessing && K <= CXCursor_LastPreprocessing;
 }
-  
+
+unsigned clang_isTemplateArg(enum CXCursorKind K) {
+  return K >= CXCursor_FirstTemplateArg && K <= CXCursor_LastTemplateArg;
+}
+
 unsigned clang_isUnexposed(enum CXCursorKind K) {
   switch (K) {
     case CXCursor_UnexposedDecl:

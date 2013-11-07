@@ -13,6 +13,7 @@ def test_get_all_kinds():
     assert CursorKind.OBJ_SELF_EXPR in kinds
     assert CursorKind.MS_ASM_STMT in kinds
     assert CursorKind.MODULE_IMPORT_DECL in kinds
+    assert CursorKind.TYPE_TEMPLATE_ARG in kinds
 
 def test_kind_groups():
     """Check that every kind classifies to exactly one group."""
@@ -34,7 +35,8 @@ def test_kind_groups():
 
     for k in CursorKind.get_all_kinds():
         group = [n for n in ('is_declaration', 'is_reference', 'is_expression',
-                             'is_statement', 'is_invalid', 'is_attribute')
+                             'is_statement', 'is_invalid', 'is_attribute',
+                             'is_template_arg')
                  if getattr(k, n)()]
 
         if k in (   CursorKind.TRANSLATION_UNIT,

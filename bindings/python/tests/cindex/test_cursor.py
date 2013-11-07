@@ -272,3 +272,22 @@ def test_access():
     for c,a in zip(kids, expect):
         assert c.access == a
     assert repr(expect[0]) == 'AccessKind.PUBLIC'
+
+def test_template_args():
+    tu = get_tu('''
+struct none {};
+template<class A,int b> struct base {};
+typedef base<char,7> derived;
+    ''', 'cpp')
+    for s in 'none','base':
+      assert not get_cursor(tu, s).has_template_args()
+    derived = get_cursor(tu, 'derived')
+    derived = derived.type.get_canonical().get_declaration()
+    assert derived.has_template_args()
+    args = list(derived.get_template_args())
+    assert len(args) == 2
+    assert args[0].kind == CursorKind.TYPE_TEMPLATE_ARG
+    assert args[0].spelling == 'char'
+    assert args[0].type.kind == TypeKind.CHAR_S
+    assert args[1].kind == CursorKind.INTEGRAL_TEMPLATE_ARG
+    assert args[1].spelling == '7'
