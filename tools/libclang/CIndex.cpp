@@ -3108,7 +3108,7 @@ static const Decl *getDeclFromExpr(const Stmt *E) {
     return getDeclFromExpr(CE->getCallee());
   if (const CXXConstructExpr *CE = dyn_cast<CXXConstructExpr>(E))
     if (!CE->isElidable())
-    return CE->getConstructor();
+      return CE->getConstructor();
   if (const ObjCMessageExpr *OME = dyn_cast<ObjCMessageExpr>(E))
     return OME->getMethodDecl();
 
