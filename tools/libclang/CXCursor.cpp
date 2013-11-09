@@ -1040,20 +1040,29 @@ CXCursor clang_Cursor_getArgument(CXCursor C, unsigned i) {
 // Return the number of template arguments and a pointer to the first.
 // On failure, -1 is returned.  Logic borrowed from TypePrinter::printTag
 static int getTemplateArgs(const Decl *D, const TemplateArgument **args) {
-  const ClassTemplateSpecializationDecl *Spec
-    = dyn_cast<ClassTemplateSpecializationDecl>(D);
-  if (!Spec)
-    return -1;
-  if (TypeSourceInfo *TAW = Spec->getTypeAsWritten()) {
-    const TemplateSpecializationType *TST =
-      cast<TemplateSpecializationType>(TAW->getType());
-    *args = TST->getArgs();
-    return TST->getNumArgs();
-  } else {
-    const TemplateArgumentList &TA = Spec->getTemplateArgs();
-    *args = TA.data();
-    return TA.size();
+  if (const ClassTemplateSpecializationDecl *Spec
+        = dyn_cast<ClassTemplateSpecializationDecl>(D)) {
+    if (!Spec)
+      return -1;
+    if (TypeSourceInfo *TAW = Spec->getTypeAsWritten()) {
+      const TemplateSpecializationType *TST =
+        cast<TemplateSpecializationType>(TAW->getType());
+      *args = TST->getArgs();
+      return TST->getNumArgs();
+    } else {
+      const TemplateArgumentList &TA = Spec->getTemplateArgs();
+      *args = TA.data();
+      return TA.size();
+    }
+  } else if (const FunctionDecl* F = dyn_cast<FunctionDecl>(D)) {
+    if (const FunctionTemplateSpecializationInfo* I
+          = F->getTemplateSpecializationInfo()) {
+      *args = I->TemplateArguments->data();
+      return I->TemplateArguments->size();
+    }
   }
+  // Not a template specialization
+  return -1;
 }
 
 int clang_Cursor_getNumTemplateArgs(CXCursor C) {
@@ -1078,27 +1087,31 @@ CXCursor clang_Cursor_getTemplateArg(CXCursor C, unsigned i) {
 int clang_visitSpecializations(CXCursor C,
                                CXCursorVisitor visitor,
                                CXClientData client_data) {
-  if (clang_isDeclaration(C.kind)) {
-    const Decl* D = getCursorDecl(C);
-    if (const ClassTemplateDecl* T = dyn_cast<ClassTemplateDecl>(D)) {
-      const ClassTemplateDecl::spec_iterator end = T->spec_end();
-      for (ClassTemplateDecl::spec_iterator it = T->spec_begin(); it != end; ++it) {
-        CXChildVisitResult R = visitor(MakeCXCursor(*it, getCursorTU(C)), C, client_data);
-        if (R == CXChildVisit_Break)
-          return 1;
-      }
-      return 0;
-    } else if (const VarTemplateDecl* V = dyn_cast<VarTemplateDecl>(D)) {
-      const VarTemplateDecl::spec_iterator end = V->spec_end();
-      for (VarTemplateDecl::spec_iterator it = V->spec_begin(); it != end; ++it) {
-        CXChildVisitResult R = visitor(MakeCXCursor(*it, getCursorTU(C)), C, client_data);
-        if (R == CXChildVisit_Break)
-          return 1;
-      }
-      return 0;
+  if (!clang_isDeclaration(C.kind))
+    return -1;
+  const Decl* D = getCursorDecl(C);
+  const CXTranslationUnit TU = getCursorTU(C);
+  if (const ClassTemplateDecl* T = dyn_cast<ClassTemplateDecl>(D))
+    for (ClassTemplateDecl::spec_iterator it = T->spec_begin(),
+                                          end = T->spec_end(); it != end; ++it) {
+      if (visitor(MakeCXCursor(*it, TU), C, client_data) == CXChildVisit_Break)
+        return 1;
     }
-  }
-  return -1; // Wrong cursor type
+  else if (const FunctionTemplateDecl* F = dyn_cast<FunctionTemplateDecl>(D))
+    for (FunctionTemplateDecl::spec_iterator it = F->spec_begin(),
+                                             end = F->spec_end(); it != end; ++it) {
+      if (visitor(MakeCXCursor(*it, TU), C, client_data) == CXChildVisit_Break)
+        return 1;
+    }
+  else if (const VarTemplateDecl* V = dyn_cast<VarTemplateDecl>(D))
+    for (VarTemplateDecl::spec_iterator it = V->spec_begin(),
+                                        end = V->spec_end(); it != end; ++it) {
+      if (visitor(MakeCXCursor(*it, TU), C, client_data) == CXChildVisit_Break)
+        return 1;
+    }
+  else
+    return -1; // Wrong cursor type
+  return 0;
 }
 
 int clang_Cursor_hasDefaultConstructor(CXCursor C) {

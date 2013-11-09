@@ -3248,15 +3248,15 @@ unsigned clang_visitChildrenWithBlock(CXCursor parent,
 #endif
 
 /**
- * \brief Visit all specializations of a class or variable template
+ * \brief Visit all specializations of a class, function, or variable template
  *
  * If the cursor is not a template declaration, -1 is returned immediately.
  * Explicit specializations, partial specializations, and implicit
  * instantiations are all traversed.
  *
- * visitor is called once per specialization, stopping if CXChildVisit_Break
- * is returned.  CXChildVisit_Recurse is treated the same as CXChildVisit_Continue.
- * If the visitor breaks, a positive value is returned.
+ * visitor is called once per specialization.  If the visitor returns
+ * CXChildVisit_Break, we stop and return a positive value.  A result of
+ * CXChildVisit_Recurse from the visitor is ignored (treated like continue).
  */
 CINDEX_LINKAGE int clang_visitSpecializations(CXCursor C,
                                               CXCursorVisitor visitor,
