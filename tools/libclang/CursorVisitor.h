@@ -96,6 +96,9 @@ private:
   /// record entries.
   bool VisitDeclsOnly;
 
+  /// \brief Whether to visit all specialization bodies
+  bool VisitAllSpecBodies;
+
   // FIXME: Eventually remove.  This part of a hack to support proper
   // iteration over all Decls contained lexically within an ObjC container.
   DeclContext::decl_iterator *DI_current;
@@ -147,7 +150,8 @@ public:
                 bool VisitIncludedPreprocessingEntries = false,
                 SourceRange RegionOfInterest = SourceRange(),
                 bool VisitDeclsOnly = false,
-                PostChildrenVisitorTy PostChildrenVisitor = 0)
+                PostChildrenVisitorTy PostChildrenVisitor = 0,
+                bool VisitAllSpecBodies = false)
     : TU(TU), AU(cxtu::getASTUnit(TU)),
       Visitor(Visitor), PostChildrenVisitor(PostChildrenVisitor),
       ClientData(ClientData),
@@ -155,6 +159,7 @@ public:
       VisitIncludedEntities(VisitIncludedPreprocessingEntries),
       RegionOfInterest(RegionOfInterest),
       VisitDeclsOnly(VisitDeclsOnly),
+      VisitAllSpecBodies(VisitAllSpecBodies),
       DI_current(0), FileDI_current(0)
   {
     Parent.kind = CXCursor_NoDeclFound;

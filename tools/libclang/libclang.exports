@@ -284,5 +284,6 @@ clang_CompileCommand_getDirectory
 clang_CompileCommand_getNumArgs
 clang_CompileCommand_getArg
 clang_visitChildren
+clang_visitChildrenFlags
 clang_visitChildrenWithBlock
 clang_visitSpecializations

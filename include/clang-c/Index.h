@@ -3223,6 +3223,30 @@ typedef enum CXChildVisitResult (*CXCursorVisitor)(CXCursor cursor,
 CINDEX_LINKAGE unsigned clang_visitChildren(CXCursor parent,
                                             CXCursorVisitor visitor,
                                             CXClientData client_data);
+
+/**
+ * \brief Flags controlling clang_visitChildren
+ */
+enum CXChildVisitFlags {
+  /**
+   * \brief Default visitation
+   */
+  CXChildVisitFlag_None = 0,
+
+  /**
+   * \brief Visit bodies of all template specializations, even implicit ones
+   */
+  CXChildVisitFlag_VisitAllSpecBodies = 0x1
+};
+
+/**
+ * \brief Same as clang_visitChildren, but with flags controlling behavior
+ */
+CINDEX_LINKAGE unsigned clang_visitChildrenFlags(CXCursor parent,
+                                                 CXCursorVisitor visitor,
+                                                 CXClientData client_data,
+                                                 unsigned flags);
+
 #ifdef __has_feature
 #  if __has_feature(blocks)
 /**

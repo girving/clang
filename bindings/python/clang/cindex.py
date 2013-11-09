@@ -1457,7 +1457,7 @@ class Cursor(Structure):
         for i in range(num):
             yield conf.lib.clang_Cursor_getTemplateArg(self, i)
 
-    def get_children(self):
+    def get_children(self, all_spec_bodies=False):
         """Return an iterator for accessing the children of this cursor."""
 
         # FIXME: Expose iteration from CIndex, PR6125.
@@ -1471,8 +1471,11 @@ class Cursor(Structure):
             children.append(child)
             return 1 # continue
         children = []
-        conf.lib.clang_visitChildren(self, callbacks['cursor_visit'](visitor),
-            children)
+        flags = 0
+        if all_spec_bodies:
+            flags |= 1
+        conf.lib.clang_visitChildrenFlags(self, callbacks['cursor_visit'](visitor),
+            children, flags)
         return iter(children)
 
     def get_specializations(self):
@@ -3331,8 +3334,8 @@ functionList = [
   ("clang_tokenize",
    [TranslationUnit, SourceRange, POINTER(POINTER(Token)), POINTER(c_uint)]),
 
-  ("clang_visitChildren",
-   [Cursor, callbacks['cursor_visit'], py_object],
+  ("clang_visitChildrenFlags",
+   [Cursor, callbacks['cursor_visit'], py_object, c_uint],
    c_uint),
 
   ("clang_visitSpecializations",

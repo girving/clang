@@ -667,12 +667,16 @@ bool CursorVisitor::VisitTagDecl(TagDecl *D) {
 
 bool CursorVisitor::VisitClassTemplateSpecializationDecl(
                                           ClassTemplateSpecializationDecl *D) {
-  bool ShouldVisitBody = false;
+  bool ShouldVisitBody = VisitAllSpecBodies;
   switch (D->getSpecializationKind()) {
   case TSK_Undeclared:
-  case TSK_ImplicitInstantiation:
     // Nothing to visit
     return false;
+
+  case TSK_ImplicitInstantiation:
+    if (!VisitAllSpecBodies)
+      return false;
+    break;
       
   case TSK_ExplicitInstantiationDeclaration:
   case TSK_ExplicitInstantiationDefinition:
@@ -3150,8 +3154,20 @@ extern "C" {
 unsigned clang_visitChildren(CXCursor parent,
                              CXCursorVisitor visitor,
                              CXClientData client_data) {
+  return clang_visitChildrenFlags(parent, visitor, client_data, 0);
+}
+
+unsigned clang_visitChildrenFlags(CXCursor parent,
+                                  CXCursorVisitor visitor,
+                                  CXClientData client_data,
+                                  unsigned flags) {
   CursorVisitor CursorVis(getCursorTU(parent), visitor, client_data,
-                          /*VisitPreprocessorLast=*/false);
+                          /*VisitPreprocessorLast=*/false,
+                          /*VisitIncludedPreprocessingEntries=*/false,
+                          /*RegionOfInterest=*/SourceRange(),
+                          /*VisitDeclsOnly=*/false,
+                          /*PostChildrenVisitor=*/0,
+                          /*VisitAllSpecBodies=*/bool(flags&CXChildVisitFlag_VisitAllSpecBodies));
   return CursorVis.VisitChildren(parent);
 }
 
