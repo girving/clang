@@ -2822,6 +2822,20 @@ CINDEX_LINKAGE int clang_Cursor_getNumTemplateArgs(CXCursor C);
 CINDEX_LINKAGE CXCursor clang_Cursor_getTemplateArg(CXCursor C, unsigned i);
 
 /**
+ * \brief Check if a class definition has a default constructor.
+ *
+ * Returns 1 for yes, 0 for no, and -1 if the cursor isn't a class definition.
+ */
+CINDEX_LINKAGE int clang_Cursor_hasDefaultConstructor(CXCursor C);
+
+/**
+ * \brief Check if a class has a simple destructor.
+ *
+ * Returns 1 for yes, 0 for no, and -1 if the cursor isn't a class definition.
+ */
+CINDEX_LINKAGE int clang_Cursor_hasSimpleDestructor(CXCursor C);
+
+/**
  * \brief Determine whether two CXTypes represent the same type.
  *
  * \returns non-zero if the CXTypes represent the same type and

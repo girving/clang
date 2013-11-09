@@ -1101,6 +1101,28 @@ int clang_visitSpecializations(CXCursor C,
   return -1; // Wrong cursor type
 }
 
+int clang_Cursor_hasDefaultConstructor(CXCursor C) {
+  if (clang_isDeclaration(C.kind)) {
+    const Decl* D = getCursorDecl(C);
+    if (const CXXRecordDecl* R = dyn_cast<CXXRecordDecl>(D))
+      return R->hasDefaultConstructor();
+    else if (isa<RecordDecl>(D))
+      return 1; // C structs always has (trivial) default constructors
+  }
+  return -1;
+}
+
+int clang_Cursor_hasSimpleDestructor(CXCursor C) {
+  if (clang_isDeclaration(C.kind)) {
+    const Decl* D = getCursorDecl(C);
+    if (const CXXRecordDecl* R = dyn_cast<CXXRecordDecl>(D))
+      return R->hasSimpleDestructor();
+    else if (isa<RecordDecl>(D))
+      return 1; // C structs always have (trivial) destructors
+  }
+  return -1;
+}
+
 } // end: extern "C"
 
 //===----------------------------------------------------------------------===//

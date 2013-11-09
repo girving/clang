@@ -1367,6 +1367,20 @@ class Cursor(Structure):
 
         return self._access
 
+    def has_default_constructor(self):
+        """Does the cursor have a default constructor?"""
+        r = conf.lib.clang_Cursor_hasDefaultConstructor(self)
+        if r < 0:
+            raise ValueError("Cursor is not a class declaration")
+        return bool(r)
+
+    def has_simple_destructor(self):
+        """Are we sure the cursor has a destructor?"""
+        r = conf.lib.clang_Cursor_hasSimpleDestructor(self)
+        if r < 0:
+            raise ValueError("Cursor is not a class declaration")
+        return bool(r)
+
     @property
     def hash(self):
         """Returns a hash of the cursor as an int."""
