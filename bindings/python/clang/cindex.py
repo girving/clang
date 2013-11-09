@@ -1461,6 +1461,19 @@ class Cursor(Structure):
             children)
         return iter(children)
 
+    def get_specializations(self):
+        """Return a list of template specializations of this cursor, which
+        must be a class or variable template."""
+        def visitor(child, _, children):
+            child._tu = self._tu
+            children.append(child)
+            return 1 # continue
+        children = []
+        conf.lib.clang_visitSpecializations(self,
+            callbacks['specialization_visit'](visitor),
+            children)
+        return children
+
     def get_tokens(self):
         """Obtain Token instances formulating that compose this Cursor.
 
@@ -2747,6 +2760,7 @@ class Token(Structure):
 callbacks['translation_unit_includes'] = CFUNCTYPE(None, c_object_p,
         POINTER(SourceLocation), c_uint, py_object)
 callbacks['cursor_visit'] = CFUNCTYPE(c_int, Cursor, Cursor, py_object)
+callbacks['specialization_visit'] = CFUNCTYPE(c_int, Cursor, Cursor, py_object)
 
 # Functions strictly alphabetical order.
 functionList = [
@@ -3306,6 +3320,10 @@ functionList = [
   ("clang_visitChildren",
    [Cursor, callbacks['cursor_visit'], py_object],
    c_uint),
+
+  ("clang_visitSpecializations",
+   [Cursor, callbacks['specialization_visit'], py_object],
+   c_int),
 
   ("clang_Cursor_getNumArguments",
    [Cursor],

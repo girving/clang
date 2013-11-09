@@ -1075,6 +1075,32 @@ CXCursor clang_Cursor_getTemplateArg(CXCursor C, unsigned i) {
   return MakeCXCursor(args+i, D, getCursorTU(C));
 }
 
+int clang_visitSpecializations(CXCursor C,
+                               CXCursorVisitor visitor,
+                               CXClientData client_data) {
+  if (clang_isDeclaration(C.kind)) {
+    const Decl* D = getCursorDecl(C);
+    if (const ClassTemplateDecl* T = dyn_cast<ClassTemplateDecl>(D)) {
+      const ClassTemplateDecl::spec_iterator end = T->spec_end();
+      for (ClassTemplateDecl::spec_iterator it = T->spec_begin(); it != end; ++it) {
+        CXChildVisitResult R = visitor(MakeCXCursor(*it, getCursorTU(C)), C, client_data);
+        if (R == CXChildVisit_Break)
+          return 1;
+      }
+      return 0;
+    } else if (const VarTemplateDecl* V = dyn_cast<VarTemplateDecl>(D)) {
+      const VarTemplateDecl::spec_iterator end = V->spec_end();
+      for (VarTemplateDecl::spec_iterator it = V->spec_begin(); it != end; ++it) {
+        CXChildVisitResult R = visitor(MakeCXCursor(*it, getCursorTU(C)), C, client_data);
+        if (R == CXChildVisit_Break)
+          return 1;
+      }
+      return 0;
+    }
+  }
+  return -1; // Wrong cursor type
+}
+
 } // end: extern "C"
 
 //===----------------------------------------------------------------------===//

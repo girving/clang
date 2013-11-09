@@ -283,3 +283,4 @@ clang_CompileCommand_getNumArgs
 clang_CompileCommand_getArg
 clang_visitChildren
 clang_visitChildrenWithBlock
+clang_visitSpecializations
