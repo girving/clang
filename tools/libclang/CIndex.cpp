@@ -6240,8 +6240,24 @@ CXCursor clang_Cursor_getDefaultArgument(CXCursor C) {
   if (clang_isDeclaration(C.kind)) {
     const Decl *D = getCursorDecl(C);
     if (const ParmVarDecl *PD = dyn_cast<ParmVarDecl>(D)) {
-      if (const Expr *E = PD->getDefaultArg())
-        return MakeCXCursor(E, D, getCursorTU(C));
+      // PD->getDefaultArg() asserts that !hasUnparsedDefaultArg and
+      // !hasUninstantiatedDefaultArg, so handle these two cases manually.
+      if (PD->hasUnparsedDefaultArg())
+        ; // Unparsed defaults can't be usefully returned
+      else {
+        // Ideally we would call PD->getDefaultArg() here, but that routine
+        // asserts that the default argument is instantiated.  We want to
+        // return useful information regardless, so we duplicate the logic
+        // of ParmVarDecl::getDefaultArg here.
+        const Expr *A = PD->getInit();
+        if (!A && PD->hasUninstantiatedDefaultArg())
+          A = PD->getUninstantiatedDefaultArg();
+        if (A) {
+          if (const ExprWithCleanups *E = dyn_cast<ExprWithCleanups>(A))
+            A = E->getSubExpr();
+          return MakeCXCursor(A, D, getCursorTU(C));
+        }
+      }
     }
   }
   return clang_getNullCursor();
