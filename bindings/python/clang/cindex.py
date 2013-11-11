@@ -1491,6 +1491,11 @@ class Cursor(Structure):
             children)
         return children
 
+    @property
+    def specialized_template(self):
+        """Return the declaration which this cursor is a specialization of"""
+        return conf.lib.clang_getSpecializedCursorTemplate(self)
+
     def get_tokens(self):
         """Obtain Token instances formulating that compose this Cursor.
 
