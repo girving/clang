@@ -1389,6 +1389,9 @@ class Cursor(Structure):
 
         return self._hash
 
+    def __hash__(self):
+        return self.hash
+
     @property
     def semantic_parent(self):
         """Return the semantic parent for this cursor."""
