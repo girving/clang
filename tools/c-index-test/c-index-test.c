@@ -1294,9 +1294,10 @@ static enum CXChildVisitResult PrintBitWidth(CXCursor cursor, CXCursor p,
 
 static void PrintTemplateArgsHelper(CXCursor cursor) {
   const int n = clang_Cursor_getNumTemplateArgs(cursor);
+  int i; 
   if (n >= 0)
     printf(" [template args %d]", n);
-  for (int i = 0; i < n; ++i) {
+  for (i = 0; i < n; ++i) {
     CXCursor arg = clang_Cursor_getTemplateArg(cursor, i);
     enum CXCursorKind kind = clang_getCursorKind(arg);
     assert(clang_isTemplateArg(kind) && "bad clang_Cursor_getTemplateArg result");
