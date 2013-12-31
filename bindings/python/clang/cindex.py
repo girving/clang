@@ -1174,6 +1174,8 @@ class Cursor(Structure):
         return cursor
 
     def __eq__(self, other):
+        if type(self) != type(other):
+            return False
         return conf.lib.clang_equalCursors(self, other)
 
     def __ne__(self, other):
