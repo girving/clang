@@ -64,8 +64,20 @@ call is efficient.
 
 from ctypes import *
 import collections
+import sys
 
 import clang.enumerations
+
+# Convert bytes to str in both python 2 and 3
+
+if sys.version_info[0] >= 3:
+  decode = bytes.decode
+  encode = str.encode
+else:
+  def decode(s):
+    return s
+  def encode(s):
+    return s
 
 # ctypes doesn't implicitly convert c_void_p to the appropriate wrapper
 # object. This is a problem, because it means that from_parameter will see an
@@ -155,7 +167,7 @@ class _CXString(Structure):
     @staticmethod
     def from_result(res, fn, args):
         assert isinstance(res, _CXString)
-        return conf.lib.clang_getCString(res)
+        return decode(conf.lib.clang_getCString(res))
 
 class SourceLocation(Structure):
     """
@@ -380,7 +392,7 @@ class Diagnostic(object):
         disable = _CXString()
         conf.lib.clang_getDiagnosticOption(self, byref(disable))
 
-        return conf.lib.clang_getCString(disable)
+        return decode(conf.lib.clang_getCString(disable))
 
     def format(self, options=None):
         """Format the diagnostic according to the given options."""
@@ -1890,7 +1902,7 @@ class Type(Structure):
         """
         Retrieve the offset of a field in the record.
         """
-        return conf.lib.clang_Type_getOffsetOf(self, c_char_p(fieldname))
+        return conf.lib.clang_Type_getOffsetOf(self, c_char_p(encode(fieldname)))
 
     def get_ref_qualifier(self):
         """
@@ -2278,8 +2290,12 @@ class TranslationUnit(ClangObject):
         the input filename. If you pass in source code containing a C++ class
         declaration with the filename "test.c" parsing will fail.
         """
+        filename = encode(filename)
+
         if args is None:
             args = []
+        else:
+            args = [encode(s) for s in args]
 
         if unsaved_files is None:
             unsaved_files = []
@@ -2327,7 +2343,7 @@ class TranslationUnit(ClangObject):
         if index is None:
             index = Index.create()
 
-        ptr = conf.lib.clang_createTranslationUnit(index, filename)
+        ptr = conf.lib.clang_createTranslationUnit(index, encode(filename))
         if not ptr:
             raise TranslationUnitLoadError(filename)
 
@@ -2502,7 +2518,7 @@ class TranslationUnit(ClangObject):
         filename -- The path to save the translation unit to.
         """
         options = conf.lib.clang_defaultSaveOptions(self)
-        result = int(conf.lib.clang_saveTranslationUnit(self, filename,
+        result = int(conf.lib.clang_saveTranslationUnit(self, encode(filename),
                                                         options))
         if result != 0:
             raise TranslationUnitSaveError(result,
@@ -2547,7 +2563,7 @@ class TranslationUnit(ClangObject):
                 unsaved_files_array[i].name = name
                 unsaved_files_array[i].contents = value
                 unsaved_files_array[i].length = len(value)
-        ptr = conf.lib.clang_codeCompleteAt(self, path, line, column,
+        ptr = conf.lib.clang_codeCompleteAt(self, encode(path), line, column,
                 unsaved_files_array, len(unsaved_files), options)
         if ptr:
             return CodeCompletionResults(ptr)
@@ -2575,12 +2591,12 @@ class File(ClangObject):
     @staticmethod
     def from_name(translation_unit, file_name):
         """Retrieve a file handle within the given translation unit."""
-        return File(conf.lib.clang_getFile(translation_unit, file_name))
+        return File(conf.lib.clang_getFile(translation_unit, encode(file_name)))
 
     @property
     def name(self):
         """Return the complete file and path name of the file."""
-        return conf.lib.clang_getCString(conf.lib.clang_getFileName(self))
+        return decode(conf.lib.clang_getCString(conf.lib.clang_getFileName(self)))
 
     @property
     def time(self):
@@ -2720,7 +2736,7 @@ class CompilationDatabase(ClangObject):
         """Builds a CompilationDatabase from the database found in buildDir"""
         errorCode = c_uint()
         try:
-            cdb = conf.lib.clang_CompilationDatabase_fromDirectory(buildDir,
+            cdb = conf.lib.clang_CompilationDatabase_fromDirectory(encode(buildDir),
                 byref(errorCode))
         except CompilationDatabaseError as e:
             raise CompilationDatabaseError(int(errorCode.value),
@@ -2733,7 +2749,7 @@ class CompilationDatabase(ClangObject):
         build filename. Returns None if filename is not found in the database.
         """
         return conf.lib.clang_CompilationDatabase_getCompileCommands(self,
-                                                                     filename)
+                                                                     encode(filename))
 
 class Token(Structure):
     """Represents a single token from the preprocessor.
