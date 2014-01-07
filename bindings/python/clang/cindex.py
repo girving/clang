@@ -66,7 +66,7 @@ from ctypes import *
 import collections
 import sys
 
-import clang.enumerations
+from . import enumerations
 
 # Convert bytes to str in both python 2 and 3
 
@@ -3559,7 +3559,7 @@ class Config:
         return True
 
 def register_enumerations():
-    for name, value in clang.enumerations.TokenKinds:
+    for name, value in enumerations.TokenKinds:
         TokenKind.register(value, name)
 
 conf = Config()
