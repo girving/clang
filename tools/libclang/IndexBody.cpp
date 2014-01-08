@@ -86,11 +86,13 @@ public:
     return true;
   }
 
+#if CLANG_VERSION_GE(3,3)
   bool VisitMSPropertyRefExpr(MSPropertyRefExpr *E) {
     IndexCtx.handleReference(E->getPropertyDecl(), E->getMemberLoc(), Parent,
                              ParentDC, E, CXIdxEntityRef_Direct);
     return true;
   }
+#endif
 
   bool VisitObjCProtocolExpr(ObjCProtocolExpr *E) {
     IndexCtx.handleReference(E->getProtocol(), E->getProtocolIdLoc(),

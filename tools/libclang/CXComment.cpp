@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "xdress-clang.h"
 #include "clang-c/Index.h"
 #include "CXComment.h"
 #include "CXCursor.h"
@@ -21,7 +22,9 @@
 #include "clang/AST/CommentVisitor.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/PrettyPrinter.h"
+#if CLANG_VERSION_GE(3,3)
 #include "clang/Format/Format.h"
+#endif
 #include "clang/Lex/Lexer.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringSwitch.h"
@@ -269,7 +272,11 @@ unsigned clang_ParamCommandComment_isParamIndexValid(CXComment CXC) {
 
 unsigned clang_ParamCommandComment_getParamIndex(CXComment CXC) {
   const ParamCommandComment *PCC = getASTNodeAs<ParamCommandComment>(CXC);
+#if CLANG_VERSION_GE(3,4)
   if (!PCC || !PCC->isParamIndexValid() || PCC->isVarArgParam())
+#else
+  if (!PCC || !PCC->isParamIndexValid())
+#endif
     return ParamCommandComment::InvalidParamIndex;
 
   return PCC->getParamIndex();
@@ -369,15 +376,19 @@ public:
     unsigned RHSIndex = UINT_MAX;
 
     if (LHS->isParamIndexValid()) {
+#if CLANG_VERSION_GE(3,4)
       if (LHS->isVarArgParam())
         LHSIndex = UINT_MAX - 1;
       else
+#endif
         LHSIndex = LHS->getParamIndex();
     }
     if (RHS->isParamIndexValid()) {
+#if CLANG_VERSION_GE(3,4)
       if (RHS->isVarArgParam())
         RHSIndex = UINT_MAX - 1;
       else
+#endif
         RHSIndex = RHS->getParamIndex();
     }
     return LHSIndex < RHSIndex;
@@ -457,10 +468,12 @@ FullCommentParts::FullCommentParts(const FullComment *C,
         Brief = BCC;
         break;
       }
+#if CLANG_VERSION_EQ(3,3)
       if (!Headerfile && Info->IsHeaderfileCommand) {
         Headerfile = BCC;
         break;
       }
+#endif
       if (Info->IsReturnsCommand) {
         Returns.push_back(BCC);
         break;
@@ -680,10 +693,13 @@ void CommentASTToHTMLConverter::visitBlockCommandComment(
 void CommentASTToHTMLConverter::visitParamCommandComment(
                                   const ParamCommandComment *C) {
   if (C->isParamIndexValid()) {
+#if CLANG_VERSION_GE(3,4)
     if (C->isVarArgParam()) {
       Result << "<dt class=\"param-name-index-vararg\">";
       appendToResultWithHTMLEscaping(C->getParamNameAsWritten());
-    } else {
+    } else
+#endif
+    {
       Result << "<dt class=\"param-name-index-"
              << C->getParamIndex()
              << "\">";
@@ -696,9 +712,11 @@ void CommentASTToHTMLConverter::visitParamCommandComment(
   Result << "</dt>";
 
   if (C->isParamIndexValid()) {
+#if CLANG_VERSION_GE(3,4)
     if (C->isVarArgParam())
       Result << "<dd class=\"param-descr-index-vararg\">";
     else
+#endif
       Result << "<dd class=\"param-descr-index-"
              << C->getParamIndex()
              << "\">";
@@ -880,6 +898,7 @@ CXString clang_FullComment_getAsHTML(CXComment CXC) {
 } // end extern "C"
 
 namespace {
+#ifndef XDRESS
 class CommentASTToXMLConverter :
     public ConstCommentVisitor<CommentASTToXMLConverter> {
 public:
@@ -932,6 +951,7 @@ private:
   SimpleFormatContext &FormatRewriterContext;
   unsigned FormatInMemoryUniqueId;
 };
+#endif // !XDRESS
 
 void getSourceTextOfDeclaration(const DeclInfo *ThisDecl,
                                 SmallVectorImpl<char> &Str) {
@@ -939,12 +959,17 @@ void getSourceTextOfDeclaration(const DeclInfo *ThisDecl,
   const LangOptions &LangOpts = Context.getLangOpts();
   llvm::raw_svector_ostream OS(Str);
   PrintingPolicy PPolicy(LangOpts);
+#if CLANG_VERSION_GE(3,3)
   PPolicy.PolishForDeclaration = true;
+#else
+  PPolicy.SuppressAttributes = true;
+#endif
   PPolicy.TerseOutput = true;
   ThisDecl->CurrentDecl->print(OS, PPolicy,
                                /*Indentation*/0, /*PrintInstantiation*/false);
 }
   
+#ifndef XDRESS
 void CommentASTToXMLConverter::formatTextOfDeclaration(
                                               const DeclInfo *DI,
                                               SmallString<128> &Declaration) {
@@ -974,9 +999,11 @@ void CommentASTToXMLConverter::formatTextOfDeclaration(
   applyAllReplacements(Replace, FormatRewriterContext.Rewrite);
   Declaration = FormatRewriterContext.getRewrittenText(ID);
 }
+#endif // !XDRESS
 
 } // end unnamed namespace
 
+#ifndef XDRESS
 void CommentASTToXMLConverter::visitTextComment(const TextComment *C) {
   appendToResultWithXMLEscaping(C->getText());
 }
@@ -1054,6 +1081,7 @@ void CommentASTToXMLConverter::appendParagraphCommentWithKind(
 void CommentASTToXMLConverter::visitBlockCommandComment(const BlockCommandComment *C) {
   StringRef ParagraphKind;
 
+#if CLANG_VERSION_GE(3,3)
   switch (C->getCommandID()) {
   case CommandTraits::KCI_attention:
   case CommandTraits::KCI_author:
@@ -1077,6 +1105,7 @@ void CommentASTToXMLConverter::visitBlockCommandComment(const BlockCommandCommen
   default:
     break;
   }
+#endif
 
   appendParagraphCommentWithKind(C->getParagraph(), ParagraphKind);
 }
@@ -1088,9 +1117,11 @@ void CommentASTToXMLConverter::visitParamCommandComment(const ParamCommandCommen
   Result << "</Name>";
 
   if (C->isParamIndexValid()) {
+#if CLANG_VERSION_GE(3,3)
     if (C->isVarArgParam())
       Result << "<IsVarArg />";
     else
+#endif
       Result << "<Index>" << C->getParamIndex() << "</Index>";
   }
 
@@ -1134,9 +1165,11 @@ void CommentASTToXMLConverter::visitVerbatimBlockComment(
     return;
 
   switch (C->getCommandID()) {
+#if CLANG_VERSION_GE(3,3)
   case CommandTraits::KCI_code:
     Result << "<Verbatim xml:space=\"preserve\" kind=\"code\">";
     break;
+#endif
   default:
     Result << "<Verbatim xml:space=\"preserve\" kind=\"verbatim\">";
     break;
@@ -1441,9 +1474,11 @@ void CommentASTToXMLConverter::appendToResultWithXMLEscaping(StringRef S) {
     }
   }
 }
+#endif // !XDRESS
 
 extern "C" {
 
+#ifndef XDRESS
 CXString clang_FullComment_getAsXML(CXComment CXC) {
   const FullComment *FC = getASTNodeAs<FullComment>(CXC);
   if (!FC)
@@ -1468,6 +1503,7 @@ CXString clang_FullComment_getAsXML(CXComment CXC) {
   Converter.visit(FC);
   return cxstring::createDup(XML.str());
 }
+#endif // !XDRESS
 
 } // end extern "C"
 

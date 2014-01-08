@@ -22,6 +22,10 @@ namespace clang {
 
 namespace cxcursor {
 
+#if !CLANG_VERSION_GE(3,3)
+using llvm::Optional;
+#endif
+
 class VisitorJob {
 public:
   enum Kind { DeclVisitKind, StmtVisitKind, MemberExprPartsKind,

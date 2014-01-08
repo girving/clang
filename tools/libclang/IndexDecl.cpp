@@ -7,6 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "xdress-clang.h"
 #include "IndexingContext.h"
 #include "clang/AST/DeclVisitor.h"
 
@@ -14,6 +15,10 @@ using namespace clang;
 using namespace cxindex;
 
 namespace {
+
+#if !CLANG_VERSION_GE(3,3)
+#define ConstDeclVisitor DeclVisitor
+#endif
 
 class IndexingDeclVisitor : public ConstDeclVisitor<IndexingDeclVisitor, bool> {
   IndexingContext &IndexCtx;
@@ -114,10 +119,12 @@ public:
     return true;
   }
 
+#if CLANG_VERSION_GE(3,3)
   bool VisitMSPropertyDecl(const MSPropertyDecl *D) {
     handleDeclarator(D);
     return true;
   }
+#endif
 
   bool VisitEnumConstantDecl(const EnumConstantDecl *D) {
     IndexCtx.handleEnumerator(D);
@@ -335,7 +342,7 @@ void IndexingContext::indexDecl(const Decl *D) {
   if (D->isImplicit() && shouldIgnoreIfImplicit(D))
     return;
 
-  bool Handled = IndexingDeclVisitor(*this).Visit(D);
+  bool Handled = IndexingDeclVisitor(*this).Visit(XDRESS_CONST_CAST(D));
   if (!Handled && isa<DeclContext>(D))
     indexDeclContext(cast<DeclContext>(D));
 }

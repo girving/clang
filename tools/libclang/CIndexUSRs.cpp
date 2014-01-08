@@ -11,6 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#ifndef XDRESS
+
 #include "CIndexer.h"
 #include "CXCursor.h"
 #include "CXString.h"
@@ -134,3 +136,4 @@ CXString clang_constructUSR_ObjCProperty(const char *property,
 }
 
 } // end extern "C"
+#endif // !XDRESS

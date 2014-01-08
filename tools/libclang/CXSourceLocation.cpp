@@ -127,23 +127,29 @@ CXSourceLocation clang_getLocation(CXTranslationUnit TU,
   if (line == 0 || column == 0)
     return clang_getNullLocation();
   
+#if CLANG_VERSION_GE(3,3)
   LogRef Log = Logger::make(LLVM_FUNCTION_NAME);
+#endif
   ASTUnit *CXXUnit = cxtu::getASTUnit(TU);
   ASTUnit::ConcurrencyCheck Check(*CXXUnit);
   const FileEntry *File = static_cast<const FileEntry *>(file);
   SourceLocation SLoc = CXXUnit->getLocation(File, line, column);
   if (SLoc.isInvalid()) {
+#if CLANG_VERSION_GE(3,3)
     if (Log)
       *Log << llvm::format("(\"%s\", %d, %d) = invalid",
                            File->getName(), line, column);
+#endif
     return clang_getNullLocation();
   }
   
   CXSourceLocation CXLoc =
       cxloc::translateSourceLocation(CXXUnit->getASTContext(), SLoc);
+#if CLANG_VERSION_GE(3,3)
   if (Log)
     *Log << llvm::format("(\"%s\", %d, %d) = ", File->getName(), line, column)
          << CXLoc;
+#endif
   
   return CXLoc;
 }
@@ -211,6 +217,7 @@ int clang_Location_isInSystemHeader(CXSourceLocation location) {
   return SM.isInSystemHeader(Loc);
 }
 
+#if CLANG_VERSION_GE(3,4)
 int clang_Location_isFromMainFile(CXSourceLocation location) {
   const SourceLocation Loc =
     SourceLocation::getFromRawEncoding(location.int_data);
@@ -221,6 +228,7 @@ int clang_Location_isFromMainFile(CXSourceLocation location) {
     *static_cast<const SourceManager*>(location.ptr_data[0]);
   return SM.isWrittenInMainFile(Loc);
 }
+#endif
 
 void clang_getExpansionLocation(CXSourceLocation location,
                                 CXFile *file,

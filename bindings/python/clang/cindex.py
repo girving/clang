@@ -68,6 +68,15 @@ import sys
 
 from . import enumerations
 
+xdress_skip_functions = '''
+  clang_annotateTokens clang_codeCompleteAt clang_codeCompleteGetDiagnostic
+  clang_codeCompleteGetNumDiagnostics clang_disposeCodeCompleteResults
+  clang_getCompletionAvailability clang_getCompletionBriefComment
+  clang_getCompletionChunkCompletionString clang_getCompletionChunkKind
+  clang_getCompletionChunkText clang_getCompletionPriority clang_getCursorUSR
+  clang_getNumCompletionChunks clang_Type_getOffsetOf
+  '''.split()
+
 # Convert bytes to str in both python 2 and 3
 
 if sys.version_info[0] >= 3:
@@ -3463,7 +3472,8 @@ def register_functions(lib, ignore_errors):
     """
 
     for item in functionList:
-        register_function(lib, item, ignore_errors)
+        if item[0] not in xdress_skip_functions:
+            register_function(lib, item, ignore_errors)
 
 class Config:
     library_path = None

@@ -12,6 +12,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#ifndef XDRESS
+
 #include "CIndexer.h"
 #include "CIndexDiagnostic.h"
 #include "CLog.h"
@@ -1000,3 +1002,5 @@ extern "C" {
     std::stable_sort(Results, Results + NumResults, OrderCompletionResults());
   }
 }
+
+#endif // !XDRESS

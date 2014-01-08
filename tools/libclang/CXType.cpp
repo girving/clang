@@ -11,6 +11,7 @@
 //
 //===--------------------------------------------------------------------===//
 
+#include "xdress-clang.h"
 #include "CIndexer.h"
 #include "CXCursor.h"
 #include "CXString.h"
@@ -112,10 +113,12 @@ CXType cxtype::MakeCXType(QualType T, CXTranslationUnit TU) {
         TK = CXType_ObjCSel;
     }
 
+#if CLANG_VERSION_GE(3,4)
     /* Handle decayed types as the original type */
     if (const DecayedType *DT = T->getAs<DecayedType>()) {
       return MakeCXType(DT->getOriginalType(), TU);
     }
+#endif
   }
   if (TK == CXType_Invalid)
     TK = GetTypeKind(T);
@@ -519,17 +522,24 @@ CXCallingConv clang_getFunctionTypeCallingConv(CXType X) {
   if (const FunctionType *FD = T->getAs<FunctionType>()) {
 #define TCALLINGCONV(X) case CC_##X: return CXCallingConv_##X
     switch (FD->getCallConv()) {
+#if !CLANG_VERSION_GE(3,4)
+      TCALLINGCONV(Default);
+#endif
       TCALLINGCONV(C);
       TCALLINGCONV(X86StdCall);
       TCALLINGCONV(X86FastCall);
       TCALLINGCONV(X86ThisCall);
       TCALLINGCONV(X86Pascal);
+#if CLANG_VERSION_GE(3,4)
       TCALLINGCONV(X86_64Win64);
       TCALLINGCONV(X86_64SysV);
+#endif
       TCALLINGCONV(AAPCS);
       TCALLINGCONV(AAPCS_VFP);
       TCALLINGCONV(PnaclCall);
+#if CLANG_VERSION_GE(3,3)
       TCALLINGCONV(IntelOclBicc);
+#endif
     }
 #undef TCALLINGCONV
   }
@@ -777,6 +787,7 @@ static long long visitRecordForValidation(const RecordDecl *RD) {
   return 0;
 }
 
+#if CLANG_VERSION_GE(3,3)
 long long clang_Type_getOffsetOf(CXType PT, const char *S) {
   // check that PT is not incomplete/dependent
   CXCursor PC = clang_getTypeDeclaration(PT);
@@ -820,6 +831,7 @@ long long clang_Type_getOffsetOf(CXType PT, const char *S) {
   // we don't want any other Decl Type.
   return CXTypeLayoutError_InvalidFieldName;
 }
+#endif // CLANG_VERSION_GE(3,3)
 
 enum CXRefQualifierKind clang_Type_getCXXRefQualifier(CXType T) {
   QualType QT = GetQualType(T);

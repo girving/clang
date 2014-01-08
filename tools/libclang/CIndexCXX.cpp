@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "xdress-clang.h"
 #include "CIndexer.h"
 #include "CXCursor.h"
 #include "CXType.h"
@@ -116,7 +117,7 @@ CXCursor clang_getSpecializedCursorTemplate(CXCursor C) {
       Template = Var->getInstantiatedFromStaticDataMember();
   } else if (const RedeclarableTemplateDecl *Tmpl
                                         = dyn_cast<RedeclarableTemplateDecl>(D))
-    Template = Tmpl->getInstantiatedFromMemberTemplate();
+    Template = XDRESS_CONST_CAST(Tmpl)->getInstantiatedFromMemberTemplate();
   
   if (!Template)
     return clang_getNullCursor();

@@ -14,11 +14,14 @@
 #ifndef LLVM_CLANG_LIBCLANG_RECURSIVEASTVISITOR_H
 #define LLVM_CLANG_LIBCLANG_RECURSIVEASTVISITOR_H
 
+#include "xdress-clang.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclFriend.h"
 #include "clang/AST/DeclObjC.h"
+#if CLANG_VERSION_GE(3,3)
 #include "clang/AST/DeclOpenMP.h"
+#endif
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/Expr.h"
 #include "clang/AST/ExprCXX.h"
@@ -27,7 +30,9 @@
 #include "clang/AST/Stmt.h"
 #include "clang/AST/StmtCXX.h"
 #include "clang/AST/StmtObjC.h"
+#if CLANG_VERSION_GE(3,4)
 #include "clang/AST/StmtOpenMP.h"
+#endif
 #include "clang/AST/TemplateBase.h"
 #include "clang/AST/TemplateName.h"
 #include "clang/AST/Type.h"
@@ -395,7 +400,9 @@ private:
   // These are helper methods used by more than one Traverse* method.
   bool TraverseTemplateParameterListHelper(TemplateParameterList *TPL);
   bool TraverseClassInstantiations(ClassTemplateDecl *D);
+#if CLANG_VERSION_GE(3,4)
   bool TraverseVariableInstantiations(VarTemplateDecl *D);
+#endif
   bool TraverseFunctionInstantiations(FunctionTemplateDecl *D) ;
   bool TraverseTemplateArgumentLocsHelper(const TemplateArgumentLoc *TAL,
                                           unsigned Count);
@@ -406,6 +413,7 @@ private:
   bool TraverseDeclContextHelper(DeclContext *DC);
   bool TraverseFunctionHelper(FunctionDecl *D);
   bool TraverseVarHelper(VarDecl *D);
+#if CLANG_VERSION_GE(3,4)
   bool TraverseOMPClause(OMPClause *C);
 #define OPENMP_CLAUSE(Name, Class)                                      \
   bool Visit##Class(Class *C);
@@ -413,6 +421,7 @@ private:
   /// \brief Process clauses with list of variables.
   template <typename T>
   void VisitOMPClauseList(T *Node);
+#endif // CLANG_VERSION_GE(3,4)
 
   typedef SmallVector<Stmt *, 16> StmtsTy;
   typedef SmallVector<StmtsTy *, 4> QueuesTy;
@@ -543,15 +552,20 @@ bool RecursiveASTVisitor<Derived>::TraverseTypeLoc(TypeLoc TL) {
 
   switch (TL.getTypeLocClass()) {
 #define ABSTRACT_TYPELOC(CLASS, BASE)
+#if CLANG_VERSION_GE(3,3)
 #define TYPELOC(CLASS, BASE) \
   case TypeLoc::CLASS: \
     return getDerived().Traverse##CLASS##TypeLoc(TL.castAs<CLASS##TypeLoc>());
+#else
+#define TYPELOC(CLASS, BASE) \
+  case TypeLoc::CLASS: \
+    return getDerived().Traverse##CLASS##TypeLoc(cast<CLASS##TypeLoc>(TL));
+#endif
 #include "clang/AST/TypeLocNodes.def"
   }
 
   return true;
 }
-
 
 template<typename Derived>
 bool RecursiveASTVisitor<Derived>::TraverseDecl(Decl *D) {
@@ -795,9 +809,11 @@ DEF_TRAVERSE_TYPE(MemberPointerType, {
     TRY_TO(TraverseType(T->getPointeeType()));
   })
 
+#if CLANG_VERSION_GE(3,4)
 DEF_TRAVERSE_TYPE(DecayedType, {
     TRY_TO(TraverseType(T->getOriginalType()));
   })
+#endif
 
 DEF_TRAVERSE_TYPE(ConstantArrayType, {
     TRY_TO(TraverseType(T->getElementType()));
@@ -1005,9 +1021,11 @@ DEF_TRAVERSE_TYPELOC(MemberPointerType, {
     TRY_TO(TraverseTypeLoc(TL.getPointeeLoc()));
   })
 
+#if CLANG_VERSION_GE(3,4)
 DEF_TRAVERSE_TYPELOC(DecayedType, {
     TRY_TO(TraverseTypeLoc(TL.getOriginalLoc()));
   })
+#endif
 
 template<typename Derived>
 bool RecursiveASTVisitor<Derived>::TraverseArrayTypeLocHelper(ArrayTypeLoc TL) {
@@ -1189,7 +1207,11 @@ bool RecursiveASTVisitor<Derived>::TraverseDeclContextHelper(DeclContext *DC) {
        Child != ChildEnd; ++Child) {
     // BlockDecls and CapturedDecls are traversed through BlockExprs and
     // CapturedStmts respectively.
+#if CLANG_VERSION_GE(3,3)
     if (!isa<BlockDecl>(*Child) && !isa<CapturedDecl>(*Child))
+#else
+    if (!isa<BlockDecl>(*Child))
+#endif
       TRY_TO(TraverseDecl(*Child));
   }
 
@@ -1218,6 +1240,7 @@ DEF_TRAVERSE_DECL(BlockDecl, {
     return true;
   })
 
+#if CLANG_VERSION_GE(3,3)
 DEF_TRAVERSE_DECL(CapturedDecl, {
     TRY_TO(TraverseStmt(D->getBody()));
     // This return statement makes sure the traversal of nodes in
@@ -1227,6 +1250,7 @@ DEF_TRAVERSE_DECL(CapturedDecl, {
   })
 
 DEF_TRAVERSE_DECL(EmptyDecl, { })
+#endif // CLANG_VERSION_GE(3,3)
 
 DEF_TRAVERSE_DECL(FileScopeAsmDecl, {
     TRY_TO(TraverseStmt(D->getAsmString()));
@@ -1352,6 +1376,7 @@ DEF_TRAVERSE_DECL(UsingDirectiveDecl, {
 
 DEF_TRAVERSE_DECL(UsingShadowDecl, { })
 
+#if CLANG_VERSION_GE(3,3)
 DEF_TRAVERSE_DECL(OMPThreadPrivateDecl, {
     for (OMPThreadPrivateDecl::varlist_iterator I = D->varlist_begin(),
                                                 E = D->varlist_end();
@@ -1359,6 +1384,7 @@ DEF_TRAVERSE_DECL(OMPThreadPrivateDecl, {
       TRY_TO(TraverseStmt(*I));
     }
   })
+#endif
 
 // A helper method for TemplateDecl's children.
 template<typename Derived>
@@ -1422,6 +1448,7 @@ DEF_TRAVERSE_DECL(ClassTemplateDecl, {
     // it was instantiated, and thus should not be traversed.
   })
 
+#if CLANG_VERSION_GE(3,4)
 // A helper method for traversing the implicit instantiations of a
 // class template.
 template <typename Derived>
@@ -1472,6 +1499,7 @@ DEF_TRAVERSE_DECL(
       // from a template instantiation back to the template from which
       // it was instantiated, and thus should not be traversed.
 })
+#endif // CLANG_VERSION_GE(3,4)
 
 // A helper method for traversing the instantiations of a
 // function while skipping its specializations.
@@ -1640,6 +1668,15 @@ bool RecursiveASTVisitor<Derived>::TraverseTemplateArgumentLocsHelper(
   return true;
 }
 
+#if CLANG_VERSION_GE(3,4)
+#define TEMPLATE_ARGS_INFO \
+  D->getTemplateArgsAsWritten()->getTemplateArgs(), \
+  D->getTemplateArgsAsWritten()->NumTemplateArgs
+#else
+#define TEMPLATE_ARGS_INFO \
+  D->getTemplateArgsAsWritten(), D->getNumTemplateArgsAsWritten()
+#endif
+
 DEF_TRAVERSE_DECL(ClassTemplatePartialSpecializationDecl, {
     // The partial specialization.
     if (TemplateParameterList *TPL = D->getTemplateParameters()) {
@@ -1649,9 +1686,7 @@ DEF_TRAVERSE_DECL(ClassTemplatePartialSpecializationDecl, {
       }
     }
     // The args that remains unspecialized.
-    TRY_TO(TraverseTemplateArgumentLocsHelper(
-                       D->getTemplateArgsAsWritten()->getTemplateArgs(),
-                       D->getTemplateArgsAsWritten()->NumTemplateArgs));
+    TRY_TO(TraverseTemplateArgumentLocsHelper(TEMPLATE_ARGS_INFO));
 
     // Don't need the ClassTemplatePartialSpecializationHelper, even
     // though that's our parent class -- we already visit all the
@@ -1692,9 +1727,11 @@ DEF_TRAVERSE_DECL(FieldDecl, {
       TRY_TO(TraverseStmt(D->getInClassInitializer()));
   })
 
+#if CLANG_VERSION_GE(3,3)
 DEF_TRAVERSE_DECL(MSPropertyDecl, {
     TRY_TO(TraverseDeclaratorHelper(D));
   })
+#endif
 
 DEF_TRAVERSE_DECL(ObjCAtDefsFieldDecl, {
     TRY_TO(TraverseDeclaratorHelper(D));
@@ -1800,6 +1837,7 @@ DEF_TRAVERSE_DECL(VarDecl, {
     TRY_TO(TraverseVarHelper(D));
   })
 
+#if CLANG_VERSION_GE(3,4)
 DEF_TRAVERSE_DECL(VarTemplateSpecializationDecl, {
   // For implicit instantiations, we don't want to
   // recurse at all, since the instatiated class isn't written in
@@ -1837,6 +1875,7 @@ DEF_TRAVERSE_DECL(VarTemplatePartialSpecializationDecl,
                     // Instantiations will have been visited with the primary
                     // template.
 })
+#endif // CLANG_VERSION_GE(3,4)
 
 DEF_TRAVERSE_DECL(ImplicitParamDecl, {
     TRY_TO(TraverseVarHelper(D));
@@ -2159,7 +2198,12 @@ bool RecursiveASTVisitor<Derived>::TraverseLambdaExpr(LambdaExpr *S) {
     if (S->hasExplicitParameters() && S->hasExplicitResultType()) {
       // Visit the whole type.
       TRY_TO(TraverseTypeLoc(TL));
+#if CLANG_VERSION_GE(3,3)
     } else if (FunctionProtoTypeLoc Proto = TL.getAs<FunctionProtoTypeLoc>()) {
+#else
+    } else if (isa<FunctionProtoTypeLoc>(TL)) {
+      FunctionProtoTypeLoc Proto = cast<FunctionProtoTypeLoc>(TL);
+#endif
       if (S->hasExplicitParameters()) {
         // Visit parameters.
         for (unsigned I = 0, N = Proto.getNumArgs(); I != N; ++I) {
@@ -2200,11 +2244,15 @@ DEF_TRAVERSE_STMT(CompoundLiteralExpr, { })
 DEF_TRAVERSE_STMT(CXXBindTemporaryExpr, { })
 DEF_TRAVERSE_STMT(CXXBoolLiteralExpr, { })
 DEF_TRAVERSE_STMT(CXXDefaultArgExpr, { })
+#if CLANG_VERSION_GE(3,3)
 DEF_TRAVERSE_STMT(CXXDefaultInitExpr, { })
+#endif
 DEF_TRAVERSE_STMT(CXXDeleteExpr, { })
 DEF_TRAVERSE_STMT(ExprWithCleanups, { })
 DEF_TRAVERSE_STMT(CXXNullPtrLiteralExpr, { })
+#if CLANG_VERSION_GE(3,4)
 DEF_TRAVERSE_STMT(CXXStdInitializerListExpr, { })
+#endif
 DEF_TRAVERSE_STMT(CXXPseudoDestructorExpr, {
   TRY_TO(TraverseNestedNameSpecifierLoc(S->getQualifierLoc()));
   if (TypeSourceInfo *ScopeInfo = S->getScopeTypeInfo())
@@ -2242,7 +2290,9 @@ DEF_TRAVERSE_STMT(ParenExpr, { })
 DEF_TRAVERSE_STMT(ParenListExpr, { })
 DEF_TRAVERSE_STMT(PredefinedExpr, { })
 DEF_TRAVERSE_STMT(ShuffleVectorExpr, { })
+#if CLANG_VERSION_GE(3,4)
 DEF_TRAVERSE_STMT(ConvertVectorExpr, { })
+#endif
 DEF_TRAVERSE_STMT(StmtExpr, { })
 DEF_TRAVERSE_STMT(UnresolvedLookupExpr, {
   TRY_TO(TraverseNestedNameSpecifierLoc(S->getQualifierLoc()));
@@ -2260,13 +2310,17 @@ DEF_TRAVERSE_STMT(UnresolvedMemberExpr, {
   }
 })
 
+#if CLANG_VERSION_GE(3,3)
 DEF_TRAVERSE_STMT(MSPropertyRefExpr, {})
+#endif
 DEF_TRAVERSE_STMT(SEHTryStmt, {})
 DEF_TRAVERSE_STMT(SEHExceptStmt, {})
 DEF_TRAVERSE_STMT(SEHFinallyStmt,{})
+#if CLANG_VERSION_GE(3,3)
 DEF_TRAVERSE_STMT(CapturedStmt, {
   TRY_TO(TraverseDecl(S->getCapturedDecl()));
 })
+#endif
 
 DEF_TRAVERSE_STMT(CXXOperatorCallExpr, { })
 DEF_TRAVERSE_STMT(OpaqueValueExpr, { })
@@ -2301,6 +2355,8 @@ DEF_TRAVERSE_STMT(ObjCDictionaryLiteral, { })
   
 // Traverse OpenCL: AsType, Convert.
 DEF_TRAVERSE_STMT(AsTypeExpr, { })
+
+#if CLANG_VERSION_GE(3,4)
 
 // OpenMP directives.
 DEF_TRAVERSE_STMT(OMPParallelDirective, {
@@ -2356,6 +2412,8 @@ bool RecursiveASTVisitor<Derived>::VisitOMPSharedClause(OMPSharedClause *C) {
   VisitOMPClauseList(C);
   return true;
 }
+
+#endif // CLANG_VERSION_GE(3,4)
 
 // FIXME: look at the following tricky-seeming exprs to see if we
 // need to recurse on anything.  These are ones that have methods
